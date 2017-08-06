@@ -7,7 +7,7 @@ import (
 
 func Test_parsing_an_addr_to_a_winrm_endpoint(t *testing.T) {
 	timeout, _ := time.ParseDuration("1s")
-	endpoint, err := parseEndpoint("1.2.3.4:1234", false, false, "", nil, timeout)
+	endpoint, err := parseEndpoint("1.2.3.4:1234", false, false, "", nil, nil, nil, timeout)
 
 	if err != nil {
 		t.Fatalf("Should not have been an error: %v", err)
@@ -33,8 +33,11 @@ func Test_parsing_an_addr_to_a_winrm_endpoint(t *testing.T) {
 }
 
 func Test_parsing_an_addr_without_a_port_to_a_winrm_endpoint(t *testing.T) {
+	caCertBytes := []byte{1, 2, 3, 4, 5, 6}
 	certBytes := []byte{1, 2, 3, 4, 5, 6}
-	endpoint, err := parseEndpoint("1.2.3.4", true, true, "", certBytes, 0)
+	keyBytes := []byte{1, 2, 3, 4, 5, 6}
+
+	endpoint, err := parseEndpoint("1.2.3.4", true, true, "insecure.com", caCertBytes, certBytes, keyBytes, 0)
 
 	if err != nil {
 		t.Fatalf("Should not have been an error: %v", err)
@@ -51,23 +54,45 @@ func Test_parsing_an_addr_without_a_port_to_a_winrm_endpoint(t *testing.T) {
 	if endpoint.Insecure != true {
 		t.Error("Endpoint should be insecure")
 	}
+
+	if endpoint.TLSServerName != "insecure.com" {
+		t.Error("TLSServerName should be 'insecure.com'")
+	}
 	if endpoint.HTTPS != true {
 		t.Error("Endpoint should be HTTPS")
 	}
 
-	if len(endpoint.CACert) != len(certBytes) {
+	if len(endpoint.CACert) != len(caCertBytes) {
 		t.Error("Length of CACert is wrong")
 	}
-	for i := 0; i < len(certBytes); i++ {
-		if (endpoint.CACert)[i] != certBytes[i] {
+	for i := 0; i < len(caCertBytes); i++ {
+		if (endpoint.CACert)[i] != caCertBytes[i] {
 			t.Error("CACert is not set correctly")
+		}
+	}
+
+	if len(endpoint.Cert) != len(certBytes) {
+		t.Error("Length of Cert is wrong")
+	}
+	for i := 0; i < len(certBytes); i++ {
+		if (endpoint.Cert)[i] != certBytes[i] {
+			t.Error("Cert is not set correctly")
+		}
+	}
+
+	if len(endpoint.Key) != len(keyBytes) {
+		t.Error("Length of Key is wrong")
+	}
+	for i := 0; i < len(caCertBytes); i++ {
+		if (endpoint.Key)[i] != keyBytes[i] {
+			t.Error("Key is not set correctly")
 		}
 	}
 }
 
 func Test_parsing_a_hostname_to_a_winrm_endpoint(t *testing.T) {
 	timeout, _ := time.ParseDuration("1s")
-	endpoint, err := parseEndpoint("windows01:1234", false, false, "", nil, timeout)
+	endpoint, err := parseEndpoint("windows01:1234", false, false, "", nil, nil, nil, timeout)
 
 	if err != nil {
 		t.Fatalf("Should not have been an error: %v", err)
@@ -93,8 +118,10 @@ func Test_parsing_a_hostname_to_a_winrm_endpoint(t *testing.T) {
 }
 
 func Test_parsing_a_hostname_without_a_port_to_a_winrm_endpoint(t *testing.T) {
+	caCertBytes := []byte{1, 2, 3, 4, 5, 6}
 	certBytes := []byte{1, 2, 3, 4, 5, 6}
-	endpoint, err := parseEndpoint("windows01.microsoft.com", true, true, "", certBytes, 0)
+	keyBytes := []byte{1, 2, 3, 4, 5, 6}
+	endpoint, err := parseEndpoint("windows01.microsoft.com", true, true, "insecure.com", caCertBytes, certBytes, keyBytes, 0)
 
 	if err != nil {
 		t.Fatalf("Should not have been an error: %v", err)
@@ -111,23 +138,44 @@ func Test_parsing_a_hostname_without_a_port_to_a_winrm_endpoint(t *testing.T) {
 	if endpoint.Insecure != true {
 		t.Error("Endpoint should be insecure")
 	}
+	if endpoint.TLSServerName != "insecure.com" {
+		t.Error("TLSServerName should be 'insecure.com'")
+	}
 	if endpoint.HTTPS != true {
 		t.Error("Endpoint should be HTTPS")
 	}
 
-	if len(endpoint.CACert) != len(certBytes) {
+	if len(endpoint.CACert) != len(caCertBytes) {
 		t.Error("Length of CACert is wrong")
 	}
-	for i := 0; i < len(certBytes); i++ {
-		if (endpoint.CACert)[i] != certBytes[i] {
+	for i := 0; i < len(caCertBytes); i++ {
+		if (endpoint.CACert)[i] != caCertBytes[i] {
 			t.Error("CACert is not set correctly")
+		}
+	}
+
+	if len(endpoint.Cert) != len(certBytes) {
+		t.Error("Length of Cert is wrong")
+	}
+	for i := 0; i < len(certBytes); i++ {
+		if (endpoint.Cert)[i] != certBytes[i] {
+			t.Error("Cert is not set correctly")
+		}
+	}
+
+	if len(endpoint.Key) != len(keyBytes) {
+		t.Error("Length of Key is wrong")
+	}
+	for i := 0; i < len(caCertBytes); i++ {
+		if (endpoint.Key)[i] != keyBytes[i] {
+			t.Error("Key is not set correctly")
 		}
 	}
 }
 
 func Test_parsing_an_ipv6_addr_to_a_winrm_endpoint(t *testing.T) {
 	timeout, _ := time.ParseDuration("1s")
-	endpoint, err := parseEndpoint("[2402:9900:111:1373:ae5:1c:4cb8:dae0]:1234", false, false, "", nil, timeout)
+	endpoint, err := parseEndpoint("[2402:9900:111:1373:ae5:1c:4cb8:dae0]:1234", false, false, "", nil, nil, nil, timeout)
 
 	if err != nil {
 		t.Fatalf("Should not have been an error: %v", err)
@@ -153,8 +201,10 @@ func Test_parsing_an_ipv6_addr_to_a_winrm_endpoint(t *testing.T) {
 }
 
 func Test_parsing_an_ipv6_addr_without_a_port_to_a_winrm_endpoint(t *testing.T) {
+	caCertBytes := []byte{1, 2, 3, 4, 5, 6}
 	certBytes := []byte{1, 2, 3, 4, 5, 6}
-	endpoint, err := parseEndpoint("[2402:9900:111:1373:192a:6b0e:7c46:2563]", true, true, "", certBytes, 0)
+	keyBytes := []byte{1, 2, 3, 4, 5, 6}
+	endpoint, err := parseEndpoint("[2402:9900:111:1373:192a:6b0e:7c46:2563]", true, true, "insecure.com", caCertBytes, certBytes, keyBytes, 0)
 
 	if err != nil {
 		t.Fatalf("Should not have been an error: %v", err)
@@ -171,22 +221,43 @@ func Test_parsing_an_ipv6_addr_without_a_port_to_a_winrm_endpoint(t *testing.T) 
 	if endpoint.Insecure != true {
 		t.Error("Endpoint should be insecure")
 	}
+	if endpoint.TLSServerName != "insecure.com" {
+		t.Error("TLSServerName should be 'insecure.com'")
+	}
 	if endpoint.HTTPS != true {
 		t.Error("Endpoint should be HTTPS")
 	}
 
-	if len(endpoint.CACert) != len(certBytes) {
+	if len(endpoint.CACert) != len(caCertBytes) {
 		t.Error("Length of CACert is wrong")
 	}
-	for i := 0; i < len(certBytes); i++ {
-		if (endpoint.CACert)[i] != certBytes[i] {
+	for i := 0; i < len(caCertBytes); i++ {
+		if (endpoint.CACert)[i] != caCertBytes[i] {
 			t.Error("CACert is not set correctly")
+		}
+	}
+
+	if len(endpoint.Cert) != len(certBytes) {
+		t.Error("Length of Cert is wrong")
+	}
+	for i := 0; i < len(certBytes); i++ {
+		if (endpoint.Cert)[i] != certBytes[i] {
+			t.Error("Cert is not set correctly")
+		}
+	}
+
+	if len(endpoint.Key) != len(keyBytes) {
+		t.Error("Length of Key is wrong")
+	}
+	for i := 0; i < len(caCertBytes); i++ {
+		if (endpoint.Key)[i] != keyBytes[i] {
+			t.Error("Key is not set correctly")
 		}
 	}
 }
 
 func Test_parsing_an_empty_addr_to_a_winrm_endpoint(t *testing.T) {
-	endpoint, err := parseEndpoint("", false, false, "", nil, 0)
+	endpoint, err := parseEndpoint("", false, false, "", nil, nil, nil, 0)
 
 	if endpoint != nil {
 		t.Error("Endpoint should be nil")
@@ -197,7 +268,7 @@ func Test_parsing_an_empty_addr_to_a_winrm_endpoint(t *testing.T) {
 }
 
 func Test_parsing_an_addr_with_a_bad_port(t *testing.T) {
-	endpoint, err := parseEndpoint("1.2.3.4:ABCD", false, false, "", nil, 0)
+	endpoint, err := parseEndpoint("1.2.3.4:ABCD", false, false, "", nil, nil, nil, 0)
 
 	if endpoint != nil {
 		t.Error("Endpoint should be nil")

@@ -11,7 +11,7 @@ import (
 	"github.com/masterzen/winrm"
 )
 
-func parseEndpoint(addr string, https bool, insecure bool, tlsServerName string, caCert []byte, timeout time.Duration) (*winrm.Endpoint, error) {
+func parseEndpoint(addr string, https bool, insecure bool, tlsServerName string, caCert []byte, cert []byte, key []byte, timeout time.Duration) (*winrm.Endpoint, error) {
 	var host string
 	var port int
 
@@ -35,13 +35,15 @@ func parseEndpoint(addr string, https bool, insecure bool, tlsServerName string,
 	}
 
 	return &winrm.Endpoint{
-		Host:          host,
-		Port:          port,
-		HTTPS:         https,
-		Insecure:      insecure,
-		TLSServerName: tlsServerName,
-		CACert:        caCert,
-		Timeout:       timeout,
+		Host:          	host,
+		Port:          	port,
+		HTTPS:         	https,
+		Insecure:      	insecure,
+		TLSServerName: 	tlsServerName,
+		Cert:			cert,
+		Key:				key,
+		CACert:        	caCert,
+		Timeout:       	timeout,
 	}, nil
 }
 
