@@ -147,7 +147,7 @@ func restoreContent(client *winrm.Client, fromPath, toPath string) (string, erro
 			echo $null > $dest_file_path
 		}
 
-		$dest_file_pat
+		$dest_file_path
 	`, fromPath, toPath)
 
 	cmd, err := shell.Execute(winrm.Powershell(script))
