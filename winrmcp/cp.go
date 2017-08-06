@@ -140,6 +140,7 @@ func restoreContent(client *winrm.Client, fromPath, toPath string) (string, erro
 				finally {
 					$writer.Close()
 				}
+			}
 			finally{
 				$reader.Close()
 			}
@@ -147,7 +148,7 @@ func restoreContent(client *winrm.Client, fromPath, toPath string) (string, erro
 			echo $null > $dest_file_path
 		}
 
-		$dest_file_pat
+		$dest_file_path
 	`, fromPath, toPath)
 
 	cmd, err := shell.Execute(winrm.Powershell(script))
@@ -177,7 +178,7 @@ func restoreContent(client *winrm.Client, fromPath, toPath string) (string, erro
 		return "", fmt.Errorf("restore operation returned code=%d", cmd.ExitCode())
 	}
 
-	remoteAbsolutePath :=  commandOutputBytes.String()
+	remoteAbsolutePath := commandOutputBytes.String()
 
 	return remoteAbsolutePath, nil
 }
