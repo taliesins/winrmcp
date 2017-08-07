@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/masterzen/winrm"
@@ -115,72 +116,87 @@ func restoreContent(client *winrm.Client, fromPath, toPath string) (string, erro
 
 	defer shell.Close()
 	script := fmt.Sprintf(`
-		$tmp_file_path = [System.IO.Path]::GetFullPath("%s")
-		$dest_file_path = [System.IO.Path]::GetFullPath("%s".Trim("'"))
+		if (Test-Path variable:global:ProgressPreference){$ProgressPreference='SilentlyContinue'};
+		$tmp_file_path = [System.IO.Path]::GetFullPath("%s");
+		$dest_file_path = [System.IO.Path]::GetFullPath("%s".Trim("'"));
 		if (Test-Path $dest_file_path) {
-			rm $dest_file_path | Out-Null
+			rm $dest_file_path | Out-Null;
 		}
 		else {
-			$dest_dir = ([System.IO.Path]::GetDirectoryName($dest_file_path))
-			New-Item -ItemType directory -Force -ErrorAction SilentlyContinue -Path $dest_dir | Out-Null
+			$dest_dir = ([System.IO.Path]::GetDirectoryName($dest_file_path));
+			New-Item -ItemType directory -Force -ErrorAction SilentlyContinue -Path $dest_dir | Out-Null;
 		}
 
 		if (Test-Path $tmp_file_path) {
-			$reader = [System.IO.File]::OpenText($tmp_file_path)
+			$reader = [System.IO.File]::OpenText($tmp_file_path);
 			try {
-				$writer = [System.IO.File]::OpenWrite($dest_file_path)
+				$writer = [System.IO.File]::OpenWrite($dest_file_path);
 				try {
 					for(;;) {
-						$base64_line = $reader.ReadLine()
-						if ($base64_line -eq $null) { break }
-						$bytes = [System.Convert]::FromBase64String($base64_line)
-						$writer.write($bytes, 0, $bytes.Length)
+						$base64_line = $reader.ReadLine();
+						if ($base64_line -eq $null) { break; }
+						$bytes = [System.Convert]::FromBase64String($base64_line);
+						$writer.write($bytes, 0, $bytes.Length);
 					}
 				}
 				finally {
-					$writer.Close()
+					$writer.Close();
 				}
 			}
 			finally{
-				$reader.Close()
+				$reader.Close();
 			}
 		} else {
-			echo $null > $dest_file_path
+			echo $null > $dest_file_path;
 		}
 
-		$dest_file_path
+		$dest_file_path;
 	`, fromPath, toPath)
 
-	cmd, err := shell.Execute(winrm.Powershell(script))
+	script = strings.Replace(script, "\n", "", -1)
+	script = strings.Replace(script, "\r", "", -1)
+	script = strings.Replace(script, "\t", "", -1)
+	script = strings.Replace(script, "\"", "\\\"", -1)
+	script = "\"" + script + "\""
+
+	cmd, err := shell.Execute("powershell", script)
+
 	if err != nil {
 		return "", err
 	}
 	defer cmd.Close()
 
-	commandOutputBytes := new(bytes.Buffer)
+	stdOutBytes := new(bytes.Buffer)
+	stdErrorBytes := new(bytes.Buffer)
 	var wg sync.WaitGroup
 	go func() {
 		wg.Add(1)
-		src := io.TeeReader(cmd.Stdout, commandOutputBytes)
-		io.Copy(os.Stdout, src)
+		stdOutReader := io.TeeReader(cmd.Stdout, stdOutBytes)
+		io.Copy(os.Stdout, stdOutReader)
 		wg.Done()
 	}()
 	go func() {
 		wg.Add(1)
-		io.Copy(os.Stderr, cmd.Stderr)
+		stdErrReader := io.TeeReader(cmd.Stderr, stdErrorBytes)
+		io.Copy(os.Stderr, stdErrReader)
 		wg.Done()
 	}()
 
 	cmd.Wait()
 	wg.Wait()
 
+	errorOutPut := stdErrorBytes.String()
+	stdOutPut := stdOutBytes.String()
+
 	if cmd.ExitCode() != 0 {
-		return "", fmt.Errorf("restore operation returned code=%d", cmd.ExitCode())
+		return "", fmt.Errorf("restore operation returned code=%d\nstderr:\n%s\nstdOut:\n%s", cmd.ExitCode(), errorOutPut, stdOutPut)
 	}
 
-	remoteAbsolutePath := commandOutputBytes.String()
+	if len(errorOutPut) > 0 {
+		return "", fmt.Errorf("restore operation returned \nstderr:\n%s\nstdOut:\n%s", errorOutPut, stdOutPut)
+	}
 
-	return remoteAbsolutePath, nil
+	return stdOutPut, nil
 }
 
 func cleanupContent(client *winrm.Client, filePath string) error {
