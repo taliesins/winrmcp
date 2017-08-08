@@ -186,7 +186,7 @@ func restoreContent(client *winrm.Client, fromPath, toPath string) (string, erro
 	wg.Wait()
 
 	errorOutPut := stdErrorBytes.String()
-	stdOutPut := stdOutBytes.String()
+	stdOutPut := strings.TrimSpace(stdOutBytes.String())
 
 	if cmd.ExitCode() != 0 {
 		return "", fmt.Errorf("restore operation returned code=%d\nstderr:\n%s\nstdOut:\n%s", cmd.ExitCode(), errorOutPut, stdOutPut)
